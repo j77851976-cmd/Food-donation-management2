@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import path from 'path';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 
@@ -27,27 +28,19 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/donations', donationRoutes);
 
-app.get('/', (req, res) => {
-  res.send('Food Donation API is running...');
-});
+const __dirname = path.resolve();
 
-// Socket.io integration
-io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`);
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '/client/dist')));
 
-  socket.on('join_room', (data) => {
-    socket.join(data);
-    console.log(`User ${socket.id} joined room: ${data}`);
+  app.get('*', (req, res) =>
+    res.sendFile(path.resolve(__dirname, 'client', 'dist', 'index.html'))
+  );
+} else {
+  app.get('/', (req, res) => {
+    res.send('API is running...');
   });
-
-  socket.on('send_message', (data) => {
-    socket.to(data.room).emit('receive_message', data);
-  });
-
-  socket.on('disconnect', () => {
-    console.log(`User disconnected: ${socket.id}`);
-  });
-});
+}
 
 const PORT = process.env.PORT || 5001;
 httpServer.listen(PORT, () => console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`));
