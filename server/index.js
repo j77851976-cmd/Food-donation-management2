@@ -28,13 +28,15 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/donations', donationRoutes);
 
-const __dirname = path.resolve();
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '..', 'client', 'dist')));
 
-      app.get(':path*', (req, res) =>
-    res.sendFile(path.resolve(__dirname, '..', 'client', 'dist', 'index.html'))
+  app.get('*', (req, res) =>
+    res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'))
   );
 } else {
   app.get('/', (req, res) => {
@@ -43,4 +45,4 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const PORT = process.env.PORT || 5001;
-httpServer.listen(PORT, () => console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`));
+httpServer.listen(PORT, '0.0.0.0', () => console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`));
