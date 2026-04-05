@@ -15,7 +15,7 @@ const DonationDetail = ({ donation, onClose, onClaimed, currentUser }) => {
     try {
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
       const { data } = await axios.put(
-        `http://localhost:5001/api/donations/${donation._id}/claim`,
+        `/api/donations/${donation._id}/claim`,
         {},
         { headers: { Authorization: `Bearer ${userInfo.token}` } }
       );

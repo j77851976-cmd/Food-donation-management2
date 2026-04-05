@@ -23,6 +23,7 @@ const io = new Server(httpServer, {
 
 app.use(cors());
 app.use(express.json());
+app.set('io', io);
 
 // API Routes
 app.use('/api/auth', authRoutes);

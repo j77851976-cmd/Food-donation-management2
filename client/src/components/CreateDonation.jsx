@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 
-const CreateDonation = ({ onClose, onSuccess }) => {
+const CreateDonation = ({ onClose, onSuccess, user }) => {
   const [formData, setFormData] = useState({
     title: '', description: '', quantity: '', expiryDate: '', 
     location: { lat: 37.7749, lng: -122.4194, address: 'Global SF' }
@@ -13,10 +13,9 @@ const CreateDonation = ({ onClose, onSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-      const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
       
-      const { data } = await axios.post('http://localhost:5001/api/donations', formData, config);
+      const { data } = await axios.post('/api/donations', formData, config);
       onSuccess(data);
       onClose();
     } catch (err) {

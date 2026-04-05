@@ -7,8 +7,9 @@ export const createDonation = async (req, res) => {
   try {
     const { title, description, quantity, expiryDate, location, image } = req.body;
 
+    console.log("createDonation called. User:", req.user);
     if (req.user.role !== 'donor') {
-      return res.status(403).json({ message: 'Only donors can create listings' });
+      return res.status(403).json({ message: `Only donors can create listings. Your role is: ${req.user.role}` });
     }
 
     const donation = await Donation.create({
@@ -21,8 +22,12 @@ export const createDonation = async (req, res) => {
       image,
       status: 'available'
     });
+    const populatedDonation = await Donation.findById(donation._id).populate('donor', 'name email phone');
+    if (req.app.get('io')) {
+      req.app.get('io').emit('newDonation', populatedDonation);
+    }
 
-    res.status(201).json(donation);
+    res.status(201).json(populatedDonation);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -58,6 +63,11 @@ export const updateDonationStatus = async (req, res) => {
     if (volunteerId) donation.volunteer = volunteerId;
 
     const updatedDonation = await donation.save();
+    
+    if (req.app.get('io')) {
+      req.app.get('io').emit('updateDonation', updatedDonation);
+    }
+
     res.json(updatedDonation);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -87,6 +97,10 @@ export const claimDonation = async (req, res) => {
     // Return with populated donor info for contact
     const populated = await Donation.findById(updatedDonation._id)
       .populate('donor', 'name email phone location');
+
+    if (req.app.get('io')) {
+      req.app.get('io').emit('updateDonation', populated);
+    }
 
     res.json({
       donation: populated,

@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import CreateDonation from '../components/CreateDonation';
 import DonationDetail from '../components/DonationDetail';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 
 // Fix default marker icon issue in Leaflet + bundlers
 delete L.Icon.Default.prototype._getIconUrl;
@@ -35,9 +36,30 @@ const Dashboard = () => {
     }
   }, [navigate]);
 
+  useEffect(() => {
+    const socket = io(import.meta.env.PROD ? undefined : 'http://localhost:5001');
+
+    socket.on('newDonation', (newDonation) => {
+      setDonations(prev => {
+        if (prev.find(d => d._id === newDonation._id)) return prev;
+        return [newDonation, ...prev];
+      });
+    });
+
+    socket.on('updateDonation', (updatedDonation) => {
+      setDonations(prev => 
+        prev.map(d => d._id === updatedDonation._id ? updatedDonation : d)
+      );
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   const fetchAvailableDonations = async (token) => {
     try {
-      const { data } = await axios.get('http://localhost:5001/api/donations', {
+      const { data } = await axios.get('/api/donations', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDonations(data);
@@ -49,7 +71,7 @@ const Dashboard = () => {
   const handleDonationClick = async (don) => {
     try {
       const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-      const { data } = await axios.get(`http://localhost:5001/api/donations/${don._id}`, {
+      const { data } = await axios.get(`/api/donations/${don._id}`, {
         headers: { Authorization: `Bearer ${userInfo.token}` }
       });
       setSelectedDonation(data);
@@ -70,6 +92,7 @@ const Dashboard = () => {
     <div className="space-y-8">
       {isCreatingDonation && (
         <CreateDonation 
+          user={user}
           onClose={() => setIsCreatingDonation(false)} 
           onSuccess={(newDonation) => setDonations([newDonation, ...donations])} 
         />
