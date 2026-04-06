@@ -1,13 +1,40 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const CreateDonation = ({ onClose, onSuccess, user }) => {
   const [formData, setFormData] = useState({
     title: '', description: '', quantity: '', expiryDate: '', 
-    location: { lat: 37.7749, lng: -122.4194, address: 'Global SF' }
+    location: null
   });
   const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(true);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          try {
+            const res = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+            setFormData(prev => ({ ...prev, location: { lat, lng, address: res.data.display_name || 'Current Location' } }));
+          } catch (e) {
+            setFormData(prev => ({ ...prev, location: { lat, lng, address: 'Location pinpointed' } }));
+          }
+          setLocating(false);
+        },
+        (error) => {
+          console.log("Geolocation error:", error);
+          setFormData(prev => ({ ...prev, location: { lat: 37.7749, lng: -122.4194, address: 'Location Access Denied (Default SF)' } }));
+          setLocating(false);
+        }
+      );
+    } else {
+      setFormData(prev => ({ ...prev, location: { lat: 37.7749, lng: -122.4194, address: 'Browser unsupported (Default SF)' } }));
+      setLocating(false);
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -58,8 +85,8 @@ const CreateDonation = ({ onClose, onSuccess, user }) => {
             <button type="button" onClick={onClose} className="px-5 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition">
               Cancel
             </button>
-            <button type="submit" disabled={loading} className="px-5 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium shadow-md transition disabled:opacity-50">
-              {loading ? 'Publishing...' : 'Publish Listing'}
+            <button type="submit" disabled={loading || locating} className="px-5 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-medium shadow-md transition disabled:opacity-50">
+              {loading ? 'Publishing...' : locating ? 'Locating You...' : 'Publish Listing'}
             </button>
           </div>
         </form>
