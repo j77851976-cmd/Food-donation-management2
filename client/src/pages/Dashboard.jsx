@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import CreateDonation from '../components/CreateDonation';
@@ -18,11 +18,20 @@ L.Icon.Default.mergeOptions({
 
 const center = [12.9716, 77.5946]; // Bangalore default
 
+const MapUpdater = ({ center }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (center) map.flyTo(center, 13);
+  }, [center, map]);
+  return null;
+};
+
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [isCreatingDonation, setIsCreatingDonation] = useState(false);
   const [selectedDonation, setSelectedDonation] = useState(null);
   const [donations, setDonations] = useState([]);
+  const [userLocation, setUserLocation] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,6 +42,13 @@ const Dashboard = () => {
       const parsedUser = JSON.parse(userInfo);
       setUser(parsedUser);
       fetchAvailableDonations(parsedUser.token);
+    }
+
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => setUserLocation([position.coords.latitude, position.coords.longitude]),
+        (error) => console.log("Geolocation error:", error)
+      );
     }
   }, [navigate]);
 
@@ -181,10 +197,16 @@ const Dashboard = () => {
           <h3 className="text-xl font-heading font-bold text-gray-800 mb-4 border-b pb-2">Donation Map View</h3>
           <div className="rounded-xl overflow-hidden" style={{ height: '400px' }}>
             <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%', borderRadius: '0.75rem' }}>
+              {userLocation && <MapUpdater center={userLocation} />}
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
+              {userLocation && (
+                <Marker position={userLocation}>
+                  <Popup>📍 <strong>You are here</strong></Popup>
+                </Marker>
+              )}
               {donations.filter(d => d.location?.lat && d.location?.lng).map(don => (
                 <Marker key={don._id} position={[don.location.lat, don.location.lng]}>
                   <Popup>
