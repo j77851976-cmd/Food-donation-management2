@@ -74,7 +74,7 @@ const DonationDetail = ({ donation, onClose, onClaimed, currentUser }) => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500 w-14">Email:</span>
-                  <a href={`mailto:${donorInfo.email}`} className="font-medium text-primary hover:underline">
+                  <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=${donorInfo.email}`} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
                     {donorInfo.email}
                   </a>
                 </div>
@@ -114,7 +114,9 @@ const DonationDetail = ({ donation, onClose, onClaimed, currentUser }) => {
             )}
             {donorInfo?.email && (
               <a
-                href={`mailto:${donorInfo.email}?subject=Regarding your food donation: ${donation.title}`}
+                href={`https://mail.google.com/mail/?view=cm&fs=1&to=${donorInfo.email}&su=Regarding your food donation: ${encodeURIComponent(donation.title)}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-md transition text-center"
               >
                 📧 Email Donor
