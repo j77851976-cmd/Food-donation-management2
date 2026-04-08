@@ -74,9 +74,9 @@ const DonationDetail = ({ donation, onClose, onClaimed, currentUser }) => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-gray-500 w-14">Email:</span>
-                  <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=${donorInfo.email}`} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
+                  <button onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${donorInfo.email}`, '_blank')} className="font-medium text-primary hover:underline cursor-pointer">
                     {donorInfo.email}
-                  </a>
+                  </button>
                 </div>
                 {donorInfo.phone && (
                   <div className="flex items-center gap-2">
@@ -113,14 +113,12 @@ const DonationDetail = ({ donation, onClose, onClaimed, currentUser }) => {
               </button>
             )}
             {donorInfo?.email && (
-              <a
-                href={`https://mail.google.com/mail/?view=cm&fs=1&to=${donorInfo.email}&su=Regarding your food donation: ${encodeURIComponent(donation.title)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-md transition text-center"
+              <button
+                onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${donorInfo.email}&su=${encodeURIComponent('Regarding your food donation: ' + donation.title)}`, '_blank')}
+                className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-md transition"
               >
                 📧 Email Donor
-              </a>
+              </button>
             )}
           </div>
         </div>
