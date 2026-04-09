@@ -32,6 +32,7 @@ const Dashboard = () => {
   const [selectedDonation, setSelectedDonation] = useState(null);
   const [donations, setDonations] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
+  const [notifications, setNotifications] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -60,6 +61,13 @@ const Dashboard = () => {
         if (prev.find(d => d._id === newDonation._id)) return prev;
         return [newDonation, ...prev];
       });
+      // Show toast only for volunteers
+      const currentUser = JSON.parse(localStorage.getItem('userInfo'));
+      if (currentUser?.role === 'volunteer') {
+        const id = Date.now();
+        setNotifications(prev => [...prev, { id, title: newDonation.title, donor: newDonation.donor?.name || 'A donor' }]);
+        setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 5000);
+      }
     });
 
     socket.on('updateDonation', (updatedDonation) => {
@@ -106,6 +114,19 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8">
+      {/* Volunteer Toast Notifications */}
+      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none">
+        {notifications.map(n => (
+          <div key={n.id} className="pointer-events-auto flex items-start gap-3 bg-white border-l-4 border-green-500 rounded-xl shadow-2xl p-4 min-w-[300px] max-w-sm animate-slide-in">
+            <div className="text-2xl">🍱</div>
+            <div>
+              <p className="font-bold text-gray-800 text-sm">New Donation Available!</p>
+              <p className="text-gray-600 text-xs mt-0.5"><span className="font-medium text-primary">{n.donor}</span> just listed <span className="font-medium">{n.title}</span></p>
+            </div>
+            <button onClick={() => setNotifications(prev => prev.filter(x => x.id !== n.id))} className="ml-auto text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
+          </div>
+        ))}
+      </div>
       {isCreatingDonation && (
         <CreateDonation 
           user={user}
