@@ -7,7 +7,7 @@
     "start": "node server/index.js",
     "server": "npm start --prefix server",
     "client": "npm run dev --prefix client",
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run client\"",
     "build": "npm install && npm install --prefix server && npm install --prefix client --include=dev && npm run build --prefix client"
   },
   "devDependencies": {

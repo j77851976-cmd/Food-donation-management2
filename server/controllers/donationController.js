@@ -42,6 +42,7 @@ export const getAvailableDonations = async (req, res) => {
       .populate('donor', 'name email phone');
     res.json(donations);
   } catch (error) {
+    console.error("Error in getAvailableDonations:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -99,7 +100,9 @@ export const claimDonation = async (req, res) => {
       .populate('donor', 'name email phone location');
 
     if (req.app.get('io')) {
+      console.log('[Socket] Emitting updateDonation and donationClaimed for:', donation._id);
       req.app.get('io').emit('updateDonation', populated);
+      req.app.get('io').emit('donationClaimed', populated);
     }
 
     res.json({

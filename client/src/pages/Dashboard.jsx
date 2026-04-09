@@ -33,6 +33,8 @@ const Dashboard = () => {
   const [donations, setDonations] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [donationPopup, setDonationPopup] = useState(null);
+  const [claimedPopup, setClaimedPopup] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -56,24 +58,53 @@ const Dashboard = () => {
   useEffect(() => {
     const socket = io(import.meta.env.PROD ? undefined : 'http://localhost:5001');
 
+    socket.on('connect', () => console.log('[Socket] Connected:', socket.id));
+    socket.on('connect_error', (err) => console.error('[Socket] Connection error:', err.message));
+
     socket.on('newDonation', (newDonation) => {
+      console.log('[Socket] newDonation received:', newDonation);
       setDonations(prev => {
         if (prev.find(d => d._id === newDonation._id)) return prev;
         return [newDonation, ...prev];
       });
-      // Show toast only for volunteers
+      // Show popup only for volunteers
       const currentUser = JSON.parse(localStorage.getItem('userInfo'));
+      console.log('[Socket] currentUser role:', currentUser?.role);
       if (currentUser?.role === 'volunteer') {
         const id = Date.now();
+        setDonationPopup({
+          title: newDonation.title,
+          donor: newDonation.donor?.name || 'A donor',
+          quantity: newDonation.quantity,
+          location: newDonation.location?.address || ''
+        });
         setNotifications(prev => [...prev, { id, title: newDonation.title, donor: newDonation.donor?.name || 'A donor' }]);
         setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 5000);
       }
     });
 
     socket.on('updateDonation', (updatedDonation) => {
-      setDonations(prev => 
+      setDonations(prev =>
         prev.map(d => d._id === updatedDonation._id ? updatedDonation : d)
       );
+    });
+
+    socket.on('donationClaimed', (claimedData) => {
+      console.log('[Socket] donationClaimed received:', claimedData);
+      const currentUser = JSON.parse(localStorage.getItem('userInfo'));
+      
+      // If I am the donor of this item, show me a THANK YOU popup
+      if (currentUser?.role === 'donor' && String(claimedData.donor?._id || claimedData.donor) === currentUser._id) {
+        setClaimedPopup({
+          title: claimedData.title,
+          recipient: claimedData.recipient?.name || 'Someone'
+        });
+      }
+      
+      // Also update the local list (remove from available if status changed)
+      if (claimedData.status !== 'available') {
+         setDonations(prev => prev.filter(d => d._id !== claimedData._id));
+      }
     });
 
     return () => {
@@ -114,6 +145,97 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8">
+      {donationPopup && (
+        <div
+          className="animate-popup-backdrop fixed inset-0 z-[10000] flex items-center justify-center bg-black/60"
+          style={{ backdropFilter: 'blur(6px)' }}
+        >
+          <div className="animate-popup-card bg-white rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl relative">
+            {/* Bouncing icon at top */}
+            <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
+              <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center border-4 border-white shadow-xl animate-bounce">
+                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="mt-10 text-center">
+              <h2 className="text-3xl font-black font-heading mb-2 text-green-600 tracking-tight">Donation Made! 🎉</h2>
+              <p className="text-gray-600 mb-6 font-medium text-base leading-snug">
+                <span className="font-bold text-gray-900">{donationPopup.donor}</span> just listed<br />
+                <span className="text-xl font-bold text-gray-900">{donationPopup.title}</span>
+              </p>
+
+              <div className="bg-gray-50 rounded-2xl p-4 mb-6 border border-gray-100 text-left">
+                <p className="text-gray-700 flex items-center gap-3 mb-2">
+                  <span className="text-2xl">🍽️</span>
+                  <span className="flex flex-col">
+                    <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Quantity</span>
+                    <span className="font-semibold">{donationPopup.quantity}</span>
+                  </span>
+                </p>
+                {donationPopup.location && (
+                  <p className="text-gray-700 flex items-center gap-3">
+                    <span className="text-2xl">📍</span>
+                    <span className="flex flex-col">
+                      <span className="text-xs text-gray-500 font-bold uppercase tracking-wider">Location</span>
+                      <span className="font-semibold text-sm">{donationPopup.location}</span>
+                    </span>
+                  </p>
+                )}
+              </div>
+
+              <button
+                onClick={() => setDonationPopup(null)}
+                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3.5 px-6 rounded-xl transition-all duration-200 shadow-lg"
+              >
+                Awesome! Let's Go 🚀
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {claimedPopup && (
+        <div
+          className="animate-popup-backdrop fixed inset-0 z-[10000] flex items-center justify-center bg-black/60"
+          style={{ backdropFilter: 'blur(8px)' }}
+        >
+          <div className="animate-popup-card bg-white rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl relative overflow-hidden">
+            {/* Confetti-like background decor */}
+            <div className="absolute top-0 right-0 p-4 opacity-20 transform translate-x-4 -translate-y-4 text-4xl">✨</div>
+            <div className="absolute bottom-0 left-0 p-4 opacity-20 transform -translate-x-4 translate-y-4 text-4xl">🎉</div>
+            
+            <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
+              <div className="w-24 h-24 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center border-4 border-white shadow-xl animate-bounce">
+                 <span className="text-4xl">❤️</span>
+              </div>
+            </div>
+
+            <div className="mt-10 text-center">
+              <h2 className="text-3xl font-black font-heading mb-2 text-orange-600 tracking-tight">Food Claimed!</h2>
+              <p className="text-gray-600 mb-6 font-medium text-base leading-snug">
+                Your listing <span className="font-bold text-gray-900">"{claimedPopup.title}"</span> has been claimed by a lucky neighbor!
+              </p>
+              
+              <div className="bg-orange-50 rounded-2xl p-6 mb-6 border border-orange-100">
+                <p className="text-orange-800 text-lg font-bold italic">
+                  "Thank you for helping reduce food waste and feeding the community!"
+                </p>
+              </div>
+
+              <button
+                onClick={() => setClaimedPopup(null)}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 px-6 rounded-xl transition-all duration-200 shadow-lg"
+              >
+                You're a Hero! 🌟
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Volunteer Toast Notifications */}
       <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none">
         {notifications.map(n => (
